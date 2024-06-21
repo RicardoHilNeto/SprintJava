@@ -1,8 +1,11 @@
 package Model;
 
 import javax.swing.JOptionPane;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -60,7 +63,7 @@ public class functions_DAO {
 
     public static ArrayList<User> users = new ArrayList<>();
 
-    public static class User {    
+    public static class User {
         private String name;
         private String specialty;
         private List<Procedure> procedures = new ArrayList<>();
@@ -90,10 +93,14 @@ public class functions_DAO {
     public static class Procedure {
         private int type;
         private int timeInSeconds;
+        private int sushiCount;
+        private Date date;
 
-        public Procedure(int type, int timeInSeconds) {
+        public Procedure(int type, int timeInSeconds, int sushiCount, Date date) {
             this.type = type;
             this.timeInSeconds = timeInSeconds;
+            this.sushiCount = sushiCount;
+            this.date = date;
         }
 
         public int getType() {
@@ -102,6 +109,14 @@ public class functions_DAO {
 
         public int getTimeInSeconds() {
             return timeInSeconds;
+        }
+
+        public int getSushiCount() {
+            return sushiCount;
+        }
+
+        public Date getDate() {
+            return date;
         }
     }
 
@@ -121,7 +136,7 @@ public class functions_DAO {
             }
         }
 
-        return null; 
+        return null;
     }
 
     public static User findUserByName(String nameInput) {
@@ -131,7 +146,7 @@ public class functions_DAO {
             }
         }
 
-        return null; 
+        return null;
     }
 
     public static void registerProcedure() {
@@ -151,14 +166,40 @@ public class functions_DAO {
             return;
         }
 
-        String timeStr = JOptionPane.showInputDialog(null, "Enter your time like the example below\n(0:20) (1:12):");
-        int timeInSeconds = parseTimeToSeconds(timeStr);
-        if (timeInSeconds < 0) {
-            JOptionPane.showMessageDialog(null, "Invalid time format.");
+        int timeInSeconds;
+        if (procedureType == 1) {
+            String timeStr = JOptionPane.showInputDialog(null, "Enter your time like the example below\n(0:20) (1:12):");
+            timeInSeconds = parseTimeToSeconds(timeStr);
+            if (timeInSeconds < 0) {
+                JOptionPane.showMessageDialog(null, "Invalid time format.");
+                return;
+            }
+        } else if (procedureType == 2) {
+            timeInSeconds = 80; // Tempo predefinido de 1:20 para procedimentos do tipo 2
+        } else {
+            JOptionPane.showMessageDialog(null, "Invalid procedure type. Please enter 1 or 2.");
             return;
         }
 
-        user.addProcedure(new Procedure(procedureType, timeInSeconds));
+        String sushiCountStr = JOptionPane.showInputDialog(null, "Enter the number of sushis rolled:");
+        int sushiCount;
+        try {
+            sushiCount = Integer.parseInt(sushiCountStr);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Invalid input for sushi count. Please enter a valid number.");
+            return;
+        }
+
+        String dateStr = JOptionPane.showInputDialog(null, "Enter the date of the procedure (yyyy-MM-dd):");
+        Date date;
+        try {
+            date = new SimpleDateFormat("yyyy-MM-dd").parse(dateStr);
+        } catch (ParseException e) {
+            JOptionPane.showMessageDialog(null, "Invalid date format. Please enter a date in the format yyyy-MM-dd.");
+            return;
+        }
+
+        user.addProcedure(new Procedure(procedureType, timeInSeconds, sushiCount, date));
     }
 
     private static int parseTimeToSeconds(String timeStr) {
@@ -191,19 +232,25 @@ public class functions_DAO {
                 .collect(Collectors.toList());
 
         List<Procedure> sortedProcedure2List = procedure2List.stream()
-                .sorted(Comparator.comparingInt(Procedure::getTimeInSeconds))
+                .sorted(Comparator.comparingInt(Procedure::getSushiCount).reversed())
                 .collect(Collectors.toList());
 
-        StringBuilder ranking1 = new StringBuilder("Ranking for Procedure 1:\n");
+        StringBuilder ranking1 = new StringBuilder("Ranking for time:\n");
         for (Procedure p : sortedProcedure1List) {
-            ranking1.append(findUserByProcedure(p).getName()).append(" - ")
-                    .append(formatTime(p.getTimeInSeconds())).append("\n");
+            User user = findUserByProcedure(p);
+            ranking1.append(user.getName()).append(" - ")
+                    .append(formatTime(p.getTimeInSeconds())).append(" - ")
+                    .append("Sushis rolled: ").append(p.getSushiCount()).append(" - ")
+                    .append("Date: ").append(new SimpleDateFormat("yyyy-MM-dd").format(p.getDate())).append("\n");
         }
 
-        StringBuilder ranking2 = new StringBuilder("Ranking for Procedure 2:\n");
+        StringBuilder ranking2 = new StringBuilder("Ranking for sushis:\n");
         for (Procedure p : sortedProcedure2List) {
-            ranking2.append(findUserByProcedure(p).getName()).append(" - ")
-                    .append(formatTime(p.getTimeInSeconds())).append("\n");
+            User user = findUserByProcedure(p);
+            ranking2.append(user.getName()).append(" - ")
+                    .append("1:20").append(" - ")
+                    .append("Sushis rolled: ").append(p.getSushiCount()).append(" - ")
+                    .append("Date: ").append(new SimpleDateFormat("yyyy-MM-dd").format(p.getDate())).append("\n");
         }
 
         JOptionPane.showMessageDialog(null, ranking1.toString());
